@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Labubu Cart Automation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 320px;
+      min-height: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .header {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .status-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .status-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .status-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .status-value {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 8px;
+    }
+    
+    .status-active {
+      background: #4ade80;
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+    }
+    
+    .status-inactive {
+      background: #f87171;
+      box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+    }
+    
+    .buttons-section {
+      margin-top: 16px;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .button-list {
+      max-height: 120px;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    
+    .button-item {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .button-item:last-child {
+      border-bottom: none;
+    }
+    
+    .button-text {
+      font-size: 13px;
+      opacity: 0.9;
+      flex: 1;
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .highlight-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .highlight-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .action-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    
+    .primary-btn {
+      background: rgba(255, 255, 255, 0.9);
+      color: #1f2937;
+    }
+    
+    .primary-btn:hover {
+      background: white;
+    }
+    
+    .secondary-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .secondary-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .no-buttons {
+      text-align: center;
+      padding: 20px;
+      opacity: 0.7;
+      font-size: 14px;
+    }
+    
+    .footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+    
+    .web-app-link {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+    
+    .web-app-link:hover {
+      color: white;
+    }
+    
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🛒 Labubu Cart</div>
+    <div class="subtitle">Smart E-commerce Automation</div>
+  </div>
+  
+  <div class="content">
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">Extension Status</span>
+        <span class="status-value" id="extensionStatus">
+          Active
+          <span class="status-indicator status-active"></span>
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Cart Buttons Found</span>
+        <span class="status-value" id="buttonCount">-</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Current Site</span>
+        <span class="status-value" id="currentSite">Loading...</span>
+      </div>
+    </div>
+    
+    <div class="buttons-section">
+      <div class="section-title">
+        🎯 Detected Cart Buttons
+      </div>
+      
+      <div id="buttonsList" class="button-list">
+        <div class="loading">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="action-btn secondary-btn" id="rescanBtn">
+        🔄 Rescan
+      </button>
+      <button class="action-btn primary-btn" id="settingsBtn">
+        ⚙️ Settings
+      </button>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <a href="#" class="web-app-link" id="webAppLink">
+      Open Dashboard →
+    </a>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
