@@ -63,18 +63,29 @@ export class ExtensionBridge {
       }
       
       try {
-        // For now, we'll simulate extension detection
-        // In real implementation, you'd check for actual extension ID
-        const isExtensionContext = window.location.protocol === 'chrome-extension:' || 
-                                  window.location.protocol === 'moz-extension:';
+        // Try to communicate with the extension
+        (window as any).chrome.runtime.sendMessage(
+          { type: 'GET_EXTENSION_STATUS' },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              console.log('Extension not found:', (window as any).chrome.runtime.lastError.message);
+              resolve({ installed: false, active: false });
+            } else if (response && response.installed) {
+              resolve({
+                installed: true,
+                active: response.active || true,
+                version: response.version || '1.0.0'
+              });
+            } else {
+              resolve({ installed: false, active: false });
+            }
+          }
+        );
         
-        if (isExtensionContext) {
-          resolve({ installed: true, active: true, version: '1.0.0' });
-        } else {
-          // Simulate checking for extension presence
-          // This would be replaced with actual extension communication
+        // Timeout after 2 seconds
+        setTimeout(() => {
           resolve({ installed: false, active: false });
-        }
+        }, 2000);
       } catch (error) {
         console.error('Error checking extension status:', error);
         resolve({ installed: false, active: false });
@@ -91,15 +102,28 @@ export class ExtensionBridge {
       }
       
       try {
-        // Simulate add to cart for demo purposes
-        // In real implementation, this would send message to extension
+        (window as any).chrome.runtime.sendMessage(
+          { 
+            type: 'ADD_TO_CART', 
+            productId, 
+            selector 
+          },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              resolve({ 
+                success: false, 
+                error: (window as any).chrome.runtime.lastError.message 
+              });
+            } else {
+              resolve(response || { success: false, error: 'No response from extension' });
+            }
+          }
+        );
+        
+        // Timeout after 10 seconds
         setTimeout(() => {
-          const success = Math.random() > 0.2; // 80% success rate for demo
-          resolve({
-            success,
-            error: success ? undefined : 'Simulated cart action failed'
-          });
-        }, 1000);
+          resolve({ success: false, error: 'Add to cart operation timed out' });
+        }, 10000);
       } catch (error) {
         console.error('Error sending add to cart command:', error);
         resolve({ 
@@ -119,27 +143,24 @@ export class ExtensionBridge {
       }
       
       try {
-        // Simulate detected buttons for demo purposes
-        const mockButtons: DetectedButton[] = [
-          {
-            id: 'btn-add-to-cart-1',
-            selector: 'button.add-to-cart',
-            xpath: '//*[@id="add-to-cart-btn"]',
-            text: 'Add to Cart',
-            className: 'btn btn-primary add-to-cart',
-            position: { x: 200, y: 400, width: 120, height: 40 },
-            visible: true,
-            enabled: true,
-            product: {
-              name: 'Sample Product',
-              price: '$29.99',
-              sku: 'PROD-001'
-            },
-            timestamp: Date.now() - 30000
+        (window as any).chrome.runtime.sendMessage(
+          { type: 'DETECT_CART_BUTTONS' },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              console.log('Error getting buttons:', (window as any).chrome.runtime.lastError.message);
+              resolve([]);
+            } else if (response && response.buttons) {
+              resolve(response.buttons);
+            } else {
+              resolve([]);
+            }
           }
-        ];
+        );
         
-        resolve(mockButtons);
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          resolve([]);
+        }, 5000);
       } catch (error) {
         console.error('Error getting detected buttons:', error);
         resolve([]);
@@ -156,10 +177,21 @@ export class ExtensionBridge {
       }
       
       try {
-        // Simulate settings update for demo
+        (window as any).chrome.runtime.sendMessage(
+          { type: 'UPDATE_SETTINGS', settings },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              resolve(false);
+            } else {
+              resolve(response?.success || false);
+            }
+          }
+        );
+        
+        // Timeout after 3 seconds
         setTimeout(() => {
-          resolve(true);
-        }, 500);
+          resolve(false);
+        }, 3000);
       } catch (error) {
         console.error('Error updating extension settings:', error);
         resolve(false);
@@ -177,9 +209,16 @@ export class ExtensionBridge {
     }
     
     try {
-      // Simulate event listening for demo
-      // In real implementation, this would set up actual message listeners
-      console.log('Extension event listeners set up (simulated)');
+      // Set up message listener for extension events
+      (window as any).chrome.runtime.onMessage?.addListener?.((message: any, sender: any, sendResponse: any) => {
+        if (message.type === 'BUTTONS_DETECTED' && callbacks.onButtonsDetected) {
+          callbacks.onButtonsDetected(message.buttons || []);
+        } else if (message.type === 'CART_ACTION_RESULT' && callbacks.onCartAction) {
+          callbacks.onCartAction(message.result);
+        }
+      });
+      
+      console.log('Extension event listeners set up');
     } catch (error) {
       console.error('Error setting up extension listeners:', error);
     }
