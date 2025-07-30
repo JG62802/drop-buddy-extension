@@ -8,6 +8,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.set({
     extensionActive: true,
     automationEnabled: false,
+    autoCheckoutEnabled: false,
     purchaseConfirmation: true,
     spendingLimit: 1000,
     whitelistedSites: ['popmart.com'],
@@ -42,6 +43,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       
     case 'GET_SETTINGS':
       getExtensionSettings(sendResponse);
+      break;
+      
+    case 'TOGGLE_AUTO_CHECKOUT':
+      toggleAutoCheckout(message.enabled, sendResponse);
       break;
       
     default:
@@ -190,3 +195,33 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.local.remove(`cartButtons_${tabId}`);
 });
+
+// Handle auto-checkout toggle
+async function toggleAutoCheckout(enabled, sendResponse) {
+  console.log('Toggling auto-checkout:', enabled);
+  
+  try {
+    // Update storage
+    await chrome.storage.local.set({ autoCheckoutEnabled: enabled });
+    
+    // Send message to all content scripts
+    const tabs = await chrome.tabs.query({});
+    
+    for (const tab of tabs) {
+      if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: enabled ? 'START_AUTO_CHECKOUT' : 'STOP_AUTO_CHECKOUT'
+          });
+        } catch (error) {
+          // Tab might not have content script loaded, ignore
+        }
+      }
+    }
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error toggling auto-checkout:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}

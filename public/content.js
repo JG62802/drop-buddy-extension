@@ -64,6 +64,8 @@
   let detectedButtons = [];
   let isMonitoring = false;
   let observer = null;
+  let autoCheckoutInterval = null;
+  let isAutoCheckoutEnabled = false;
   
   // Initialize content script
   initialize();
@@ -80,6 +82,13 @@
     
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener(handleMessage);
+    
+    // Check if auto-checkout is enabled
+    chrome.storage.local.get(['autoCheckoutEnabled'], (result) => {
+      if (result.autoCheckoutEnabled) {
+        startAutoCheckout();
+      }
+    });
   }
   
   function startMonitoring() {
@@ -388,6 +397,16 @@
         sendResponse({ success: true, buttons: detectedButtons });
         break;
         
+      case 'START_AUTO_CHECKOUT':
+        startAutoCheckout();
+        sendResponse({ success: true });
+        break;
+        
+      case 'STOP_AUTO_CHECKOUT':
+        stopAutoCheckout();
+        sendResponse({ success: true });
+        break;
+        
       default:
         console.log('Unknown message type:', message.type);
     }
@@ -564,6 +583,112 @@
   function arraysEqual(a, b) {
     if (a.length !== b.length) return false;
     return a.every((item, index) => item.id === b[index].id);
+  }
+
+  // Auto-checkout functionality
+  function startAutoCheckout() {
+    if (autoCheckoutInterval) {
+      clearInterval(autoCheckoutInterval);
+    }
+    
+    isAutoCheckoutEnabled = true;
+    console.log('🤖 Starting auto-checkout mode - checking every 1 second for Labubu products');
+    
+    autoCheckoutInterval = setInterval(() => {
+      checkForLabubuAndPurchase();
+    }, 1000);
+  }
+
+  function stopAutoCheckout() {
+    if (autoCheckoutInterval) {
+      clearInterval(autoCheckoutInterval);
+      autoCheckoutInterval = null;
+    }
+    isAutoCheckoutEnabled = false;
+    console.log('🛑 Auto-checkout mode stopped');
+  }
+
+  function checkForLabubuAndPurchase() {
+    // Scan for cart buttons
+    scanForCartButtons();
+    
+    // Look for labubu-related products
+    const labubuButtons = detectedButtons.filter(button => 
+      isLabubuProduct(button.product?.name || button.text || '')
+    );
+    
+    if (labubuButtons.length > 0) {
+      console.log(`🎯 Found ${labubuButtons.length} Labubu products, attempting to add to cart`);
+      
+      // Try to add the first available labubu to cart
+      const button = labubuButtons[0];
+      if (button.visible && button.enabled) {
+        console.log('🚀 Attempting auto-purchase of:', button.product?.name || button.text);
+        
+        // Simulate the add to cart action
+        executeAddToCart({
+          buttonId: button.id,
+          selector: button.selector
+        }, (response) => {
+          if (response.success) {
+            console.log('✅ Successfully added Labubu to cart!');
+            
+            // Try to proceed to checkout if possible
+            setTimeout(() => {
+              tryProceedToCheckout();
+            }, 2000);
+          } else {
+            console.log('❌ Failed to add Labubu to cart:', response.error);
+          }
+        });
+      }
+    }
+  }
+
+  function isLabubuProduct(text) {
+    const labubuKeywords = [
+      'labubu', 'LABUBU', 'Labubu',
+      'pop mart', 'popmart', 'POPMART',
+      'the monsters', 'crybaby series',
+      'ziqi', 'ZIQI'
+    ];
+    
+    return labubuKeywords.some(keyword => 
+      text.toLowerCase().includes(keyword.toLowerCase())
+    );
+  }
+
+  function tryProceedToCheckout() {
+    // Look for common checkout/cart buttons
+    const checkoutSelectors = [
+      'a[href*="cart"]',
+      'a[href*="checkout"]', 
+      'button[onclick*="cart"]',
+      'button[onclick*="checkout"]',
+      '.checkout-btn',
+      '.cart-btn',
+      '.proceed-checkout',
+      '[data-testid*="checkout"]',
+      '[data-testid*="cart"]',
+      'button:contains("Checkout")',
+      'button:contains("View Cart")',
+      'a:contains("Cart")'
+    ];
+    
+    for (const selector of checkoutSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.offsetParent !== null) {
+        console.log('🛒 Found checkout button, proceeding...');
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        setTimeout(() => {
+          element.click();
+          console.log('✅ Clicked checkout button');
+        }, 500);
+        
+        break;
+      }
+    }
   }
   
 })();

@@ -25,6 +25,7 @@ export function DropMonitorIntegration() {
   // States for different integration methods
   const [webhookUrl, setWebhookUrl] = useState('');
   const [autoProcess, setAutoProcess] = useState(false);
+  const [autoCheckoutEnabled, setAutoCheckoutEnabled] = useState(false);
   const [dropAlerts, setDropAlerts] = useState<DropAlert[]>([]);
   const [isListening, setIsListening] = useState(false);
 
@@ -130,6 +131,34 @@ export function DropMonitorIntegration() {
     handleNewDrop(testAlert);
   };
 
+  const toggleAutoCheckout = async () => {
+    try {
+      // Send message to extension to toggle auto-checkout
+      const response = await new Promise<{ success: boolean }>((resolve) => {
+        chrome.runtime.sendMessage({
+          type: 'TOGGLE_AUTO_CHECKOUT',
+          enabled: !autoCheckoutEnabled
+        }, resolve);
+      });
+
+      if (response?.success) {
+        setAutoCheckoutEnabled(!autoCheckoutEnabled);
+        toast({
+          title: autoCheckoutEnabled ? "Auto-Checkout Disabled" : "Auto-Checkout Enabled",
+          description: autoCheckoutEnabled 
+            ? "Extension will stop checking for Labubu products"
+            : "Extension will now check for Labubu products every second and auto-purchase them",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not toggle auto-checkout mode",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -221,18 +250,34 @@ export function DropMonitorIntegration() {
               <Badge variant="secondary">{dropAlerts.length}</Badge>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={autoProcess}
-                  onCheckedChange={setAutoProcess}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={autoProcess}
+                    onCheckedChange={setAutoProcess}
+                    disabled={!extensionStatus.installed}
+                  />
+                  <Label>Auto-process drops</Label>
+                </div>
+                <Button onClick={testIntegration} variant="outline" size="sm">
+                  Test Integration
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                <div>
+                  <h4 className="font-medium">🤖 Auto-Checkout Mode</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Extension checks every 1 second for Labubu products and auto-purchases them
+                  </p>
+                </div>
+                <Switch 
+                  checked={autoCheckoutEnabled}
+                  onCheckedChange={toggleAutoCheckout}
                   disabled={!extensionStatus.installed}
                 />
-                <Label>Auto-process drops</Label>
               </div>
-              <Button onClick={testIntegration} variant="outline" size="sm">
-                Test Integration
-              </Button>
             </div>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
