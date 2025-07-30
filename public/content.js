@@ -41,8 +41,22 @@
     popmart: [
       'button[class*="add-to-cart"]',
       'button[class*="buy-button"]',
+      'button[class*="addtocart"]',
+      'button[class*="add-cart"]',
+      'button[class*="buy-now"]',
+      'button[class*="purchase"]',
+      'button[data-testid*="add-to-cart"]',
+      'button[data-testid*="buy"]',
+      'button:contains("Add to Cart")',
+      'button:contains("Buy Now")',
+      'button:contains("Add to Bag")',
+      'button:contains("Purchase")',
       '.product-buy-button',
-      '.add-cart-btn'
+      '.add-cart-btn',
+      '.buy-button',
+      '.purchase-button',
+      'input[type="submit"][value*="Add"]',
+      'input[type="button"][value*="Add"]'
     ]
   };
   
@@ -93,21 +107,34 @@
     
     // Get appropriate selectors
     const selectors = getSelectorsForPlatform(platform);
+    console.log('Using selectors:', selectors);
     
     // Scan for buttons using all selectors
     selectors.forEach(selector => {
       try {
         const buttons = document.querySelectorAll(selector);
-        buttons.forEach(button => {
+        console.log(`Selector "${selector}" found ${buttons.length} elements`);
+        buttons.forEach((button, index) => {
+          console.log(`  Button ${index}: "${button.textContent.trim()}" - Valid: ${isValidCartButton(button)}`);
           if (isValidCartButton(button)) {
             const buttonInfo = extractButtonInfo(button, selector);
             if (buttonInfo && !isDuplicateButton(buttonInfo, newButtons)) {
               newButtons.push(buttonInfo);
+              console.log('  ✓ Added to detected buttons');
             }
           }
         });
       } catch (error) {
         console.log('Error with selector:', selector, error);
+      }
+    });
+    
+    // Debug: Log all buttons on page
+    const allButtons = document.querySelectorAll('button, input[type="button"], input[type="submit"]');
+    console.log(`Total buttons on page: ${allButtons.length}`);
+    allButtons.forEach((btn, i) => {
+      if (i < 10) { // Log first 10 buttons
+        console.log(`Button ${i}: "${btn.textContent.trim()}" | Class: "${btn.className}" | Type: ${btn.type || 'button'}`);
       }
     });
     
