@@ -1,5 +1,6 @@
 import { ExtensionStatusCard } from "@/components/ExtensionStatusCard";
 import { DetectedButtonsList } from "@/components/DetectedButtonsList";
+import { DropMonitorIntegration } from "@/components/DropMonitorIntegration";
 
 const Index = () => {
   return (
@@ -18,6 +19,8 @@ const Index = () => {
           <ExtensionStatusCard />
           <DetectedButtonsList />
         </div>
+        
+        <DropMonitorIntegration />
         
         <div className="bg-muted/30 rounded-lg p-6 space-y-4">
           <h2 className="text-lg font-semibold">How It Works</h2>
