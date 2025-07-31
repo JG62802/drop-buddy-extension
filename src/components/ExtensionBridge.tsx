@@ -199,6 +199,86 @@ export class ExtensionBridge {
     });
   }
   
+  // Toggle auto-checkout mode
+  async toggleAutoCheckout(enabled: boolean): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      if (!(window as any).chrome?.runtime) {
+        resolve({ success: false, error: 'Extension not available' });
+        return;
+      }
+      
+      try {
+        (window as any).chrome.runtime.sendMessage(
+          { 
+            type: 'TOGGLE_AUTO_CHECKOUT',
+            data: { enabled }
+          },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              resolve({ 
+                success: false, 
+                error: (window as any).chrome.runtime.lastError.message 
+              });
+            } else {
+              resolve(response || { success: false, error: 'No response from extension' });
+            }
+          }
+        );
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          resolve({ success: false, error: 'Toggle auto-checkout timed out' });
+        }, 5000);
+      } catch (error) {
+        console.error('Error toggling auto-checkout:', error);
+        resolve({ 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+  }
+  
+  // Store payment information
+  async storePaymentInfo(paymentInfo: any): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      if (!(window as any).chrome?.runtime) {
+        resolve({ success: false, error: 'Extension not available' });
+        return;
+      }
+      
+      try {
+        (window as any).chrome.runtime.sendMessage(
+          { 
+            type: 'STORE_PAYMENT_INFO',
+            data: { paymentInfo }
+          },
+          (response: any) => {
+            if ((window as any).chrome.runtime.lastError) {
+              resolve({ 
+                success: false, 
+                error: (window as any).chrome.runtime.lastError.message 
+              });
+            } else {
+              resolve(response || { success: false, error: 'No response from extension' });
+            }
+          }
+        );
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          resolve({ success: false, error: 'Store payment info timed out' });
+        }, 5000);
+      } catch (error) {
+        console.error('Error storing payment info:', error);
+        resolve({ 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+  }
+
   // Listen for extension events
   setupEventListeners(callbacks: {
     onButtonsDetected?: (buttons: DetectedButton[]) => void;
@@ -321,6 +401,34 @@ export function useExtensionBridge() {
     }
   };
   
+  const toggleAutoCheckout = async (enabled: boolean) => {
+    if (!extensionStatus.installed) {
+      toast({
+        title: "Extension Required",
+        description: "Please install the Labubu Cart Extension to use this feature",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return { success: false, error: 'Extension not installed' };
+    }
+    
+    return await bridge.toggleAutoCheckout(enabled);
+  };
+  
+  const storePaymentInfo = async (paymentInfo: any) => {
+    if (!extensionStatus.installed) {
+      toast({
+        title: "Extension Required",
+        description: "Please install the Labubu Cart Extension to use this feature",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return { success: false, error: 'Extension not installed' };
+    }
+    
+    return await bridge.storePaymentInfo(paymentInfo);
+  };
+  
   return {
     extensionStatus,
     detectedButtons,
@@ -328,6 +436,8 @@ export function useExtensionBridge() {
     addToCart,
     updateExtensionSettings,
     refreshButtons,
-    checkStatus
+    checkStatus,
+    toggleAutoCheckout,
+    storePaymentInfo
   };
 }

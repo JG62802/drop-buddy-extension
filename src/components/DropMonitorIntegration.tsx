@@ -20,7 +20,7 @@ interface DropAlert {
 
 export function DropMonitorIntegration() {
   const { toast } = useToast();
-  const { addToCart, extensionStatus } = useExtensionBridge();
+  const { addToCart, extensionStatus, toggleAutoCheckout, storePaymentInfo } = useExtensionBridge();
   
   // States for different integration methods
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -131,23 +131,25 @@ export function DropMonitorIntegration() {
     handleNewDrop(testAlert);
   };
 
-  const toggleAutoCheckout = async () => {
+  const handleToggleAutoCheckout = async () => {
+    const newState = !autoCheckoutEnabled;
+    
     try {
-      // Send message to extension to toggle auto-checkout
-      const response = await new Promise<{ success: boolean }>((resolve) => {
-        chrome.runtime.sendMessage({
-          type: 'TOGGLE_AUTO_CHECKOUT',
-          enabled: !autoCheckoutEnabled
-        }, resolve);
-      });
+      const response = await toggleAutoCheckout(newState);
 
       if (response?.success) {
-        setAutoCheckoutEnabled(!autoCheckoutEnabled);
+        setAutoCheckoutEnabled(newState);
         toast({
-          title: autoCheckoutEnabled ? "Ultra-Fast Auto-Checkout Disabled" : "Ultra-Fast Auto-Checkout Enabled",
-          description: autoCheckoutEnabled 
-            ? "Extension will stop checking for Labubu products"
-            : "Extension will now check for Labubu products every 0.01 seconds and auto-purchase them",
+          title: newState ? "Ultra-Fast Auto-Checkout Enabled" : "Ultra-Fast Auto-Checkout Disabled",
+          description: newState 
+            ? "Extension will now check for Labubu products every 0.01 seconds and auto-purchase them"
+            : "Extension will stop checking for Labubu products",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response?.error || "Could not toggle auto-checkout mode",
+          variant: "destructive",
         });
       }
     } catch (error) {
@@ -159,7 +161,7 @@ export function DropMonitorIntegration() {
     }
   };
 
-  const openPaymentSetup = () => {
+  const openPaymentSetup = async () => {
     // Create payment setup modal/form
     const paymentInfo = {
       email: prompt("Enter email:") || "",
@@ -174,11 +176,9 @@ export function DropMonitorIntegration() {
       autoSubmit: confirm("Auto-submit checkout? (WARNING: This will automatically complete purchases)")
     };
     
-    // Store in extension storage
-    chrome.runtime.sendMessage({
-      type: 'STORE_PAYMENT_INFO',
-      paymentInfo: paymentInfo
-    }, (response) => {
+    try {
+      const response = await storePaymentInfo(paymentInfo);
+      
       if (response?.success) {
         toast({
           title: "Payment Info Saved",
@@ -187,11 +187,17 @@ export function DropMonitorIntegration() {
       } else {
         toast({
           title: "Error",
-          description: "Could not save payment information",
+          description: response?.error || "Could not save payment information",
           variant: "destructive",
         });
       }
-    });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not save payment information",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -309,7 +315,7 @@ export function DropMonitorIntegration() {
                 </div>
                 <Switch 
                   checked={autoCheckoutEnabled}
-                  onCheckedChange={toggleAutoCheckout}
+                  onCheckedChange={handleToggleAutoCheckout}
                   disabled={!extensionStatus.installed}
                 />
               </div>
