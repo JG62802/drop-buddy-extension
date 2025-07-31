@@ -592,11 +592,11 @@
     }
     
     isAutoCheckoutEnabled = true;
-    console.log('🤖 Starting auto-checkout mode - checking every 1 second for Labubu products');
+    console.log('🤖 Starting ultra-fast auto-checkout mode - checking every 0.01 seconds for Labubu products');
     
     autoCheckoutInterval = setInterval(() => {
       checkForLabubuAndPurchase();
-    }, 1000);
+    }, 10);
   }
 
   function stopAutoCheckout() {
@@ -635,7 +635,7 @@
             
             // Try to proceed to checkout if possible
             setTimeout(() => {
-              tryProceedToCheckout();
+              proceedToCheckout();
             }, 2000);
           } else {
             console.log('❌ Failed to add Labubu to cart:', response.error);
@@ -658,36 +658,184 @@
     );
   }
 
-  function tryProceedToCheckout() {
-    // Look for common checkout/cart buttons
-    const checkoutSelectors = [
-      'a[href*="cart"]',
-      'a[href*="checkout"]', 
-      'button[onclick*="cart"]',
-      'button[onclick*="checkout"]',
-      '.checkout-btn',
-      '.cart-btn',
-      '.proceed-checkout',
-      '[data-testid*="checkout"]',
-      '[data-testid*="cart"]',
-      'button:contains("Checkout")',
-      'button:contains("View Cart")',
-      'a:contains("Cart")'
-    ];
-    
-    for (const selector of checkoutSelectors) {
-      const element = document.querySelector(selector);
-      if (element && element.offsetParent !== null) {
-        console.log('🛒 Found checkout button, proceeding...');
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        setTimeout(() => {
-          element.click();
-          console.log('✅ Clicked checkout button');
-        }, 500);
-        
-        break;
+  async function proceedToCheckout() {
+    try {
+      console.log('🛒 Proceeding to checkout...');
+      
+      // Look for checkout/cart buttons
+      const checkoutSelectors = [
+        'button[data-testid="checkout-button"]',
+        'button[class*="checkout"]',
+        'a[href*="checkout"]',
+        'button:contains("Checkout")',
+        'button:contains("Proceed to Checkout")',
+        '.checkout-button',
+        '#checkout-btn',
+        'a[href*="cart"]',
+        'button[onclick*="cart"]',
+        '.cart-btn',
+        '[data-testid*="cart"]'
+      ];
+      
+      for (const selector of checkoutSelectors) {
+        const button = document.querySelector(selector);
+        if (button && button.offsetParent !== null) {
+          console.log(`🎯 Found checkout button: ${selector}`);
+          button.click();
+          
+          // Wait for checkout page to load then fill payment info
+          setTimeout(() => {
+            fillPaymentInfo();
+          }, 2000);
+          
+          return true;
+        }
       }
+      
+      console.log('❌ No checkout button found');
+      return false;
+    } catch (error) {
+      console.error('Error proceeding to checkout:', error);
+      return false;
+    }
+  }
+
+  async function fillPaymentInfo() {
+    try {
+      console.log('💳 Filling payment information...');
+      
+      // Get stored payment info
+      const result = await chrome.storage.local.get(['paymentInfo']);
+      const paymentInfo = result.paymentInfo;
+      
+      if (!paymentInfo) {
+        console.log('❌ No payment information stored');
+        return false;
+      }
+      
+      // Fill email
+      if (paymentInfo.email) {
+        const emailFields = document.querySelectorAll('input[type="email"], input[name*="email"], input[id*="email"]');
+        emailFields.forEach(field => {
+          field.value = paymentInfo.email;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
+      
+      // Fill billing address
+      if (paymentInfo.firstName) {
+        const firstNameFields = document.querySelectorAll('input[name*="firstName"], input[name*="first"], input[id*="first"]');
+        firstNameFields.forEach(field => {
+          field.value = paymentInfo.firstName;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      if (paymentInfo.lastName) {
+        const lastNameFields = document.querySelectorAll('input[name*="lastName"], input[name*="last"], input[id*="last"]');
+        lastNameFields.forEach(field => {
+          field.value = paymentInfo.lastName;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      if (paymentInfo.address) {
+        const addressFields = document.querySelectorAll('input[name*="address"], input[id*="address"]');
+        addressFields.forEach(field => {
+          field.value = paymentInfo.address;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      if (paymentInfo.city) {
+        const cityFields = document.querySelectorAll('input[name*="city"], input[id*="city"]');
+        cityFields.forEach(field => {
+          field.value = paymentInfo.city;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      if (paymentInfo.zip) {
+        const zipFields = document.querySelectorAll('input[name*="zip"], input[name*="postal"], input[id*="zip"]');
+        zipFields.forEach(field => {
+          field.value = paymentInfo.zip;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      // Fill credit card info (be careful with security)
+      if (paymentInfo.cardNumber) {
+        const cardFields = document.querySelectorAll('input[name*="card"], input[id*="card"], input[placeholder*="card"]');
+        cardFields.forEach(field => {
+          if (field.placeholder.toLowerCase().includes('number') || field.name.toLowerCase().includes('number')) {
+            field.value = paymentInfo.cardNumber;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        });
+      }
+      
+      if (paymentInfo.expiry) {
+        const expiryFields = document.querySelectorAll('input[name*="expiry"], input[name*="exp"], input[id*="exp"]');
+        expiryFields.forEach(field => {
+          field.value = paymentInfo.expiry;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      if (paymentInfo.cvv) {
+        const cvvFields = document.querySelectorAll('input[name*="cvv"], input[name*="cvc"], input[id*="cvv"]');
+        cvvFields.forEach(field => {
+          field.value = paymentInfo.cvv;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+      
+      console.log('✅ Payment information filled');
+      
+      // Auto-submit if enabled
+      if (paymentInfo.autoSubmit) {
+        setTimeout(() => {
+          submitCheckout();
+        }, 1000);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error filling payment info:', error);
+      return false;
+    }
+  }
+  
+  async function submitCheckout() {
+    try {
+      console.log('🚀 Submitting checkout...');
+      
+      const submitSelectors = [
+        'button[type="submit"]',
+        'button[class*="submit"]',
+        'button[class*="place-order"]',
+        'button:contains("Place Order")',
+        'button:contains("Complete Purchase")',
+        'button:contains("Pay Now")',
+        '#submit-button',
+        '.submit-btn'
+      ];
+      
+      for (const selector of submitSelectors) {
+        const button = document.querySelector(selector);
+        if (button && button.offsetParent !== null && !button.disabled) {
+          console.log(`🎯 Submitting with: ${selector}`);
+          button.click();
+          return true;
+        }
+      }
+      
+      console.log('❌ No submit button found');
+      return false;
+    } catch (error) {
+      console.error('Error submitting checkout:', error);
+      return false;
     }
   }
   

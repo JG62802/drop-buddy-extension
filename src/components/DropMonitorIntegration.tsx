@@ -144,10 +144,10 @@ export function DropMonitorIntegration() {
       if (response?.success) {
         setAutoCheckoutEnabled(!autoCheckoutEnabled);
         toast({
-          title: autoCheckoutEnabled ? "Auto-Checkout Disabled" : "Auto-Checkout Enabled",
+          title: autoCheckoutEnabled ? "Ultra-Fast Auto-Checkout Disabled" : "Ultra-Fast Auto-Checkout Enabled",
           description: autoCheckoutEnabled 
             ? "Extension will stop checking for Labubu products"
-            : "Extension will now check for Labubu products every second and auto-purchase them",
+            : "Extension will now check for Labubu products every 0.01 seconds and auto-purchase them",
         });
       }
     } catch (error) {
@@ -157,6 +157,41 @@ export function DropMonitorIntegration() {
         variant: "destructive",
       });
     }
+  };
+
+  const openPaymentSetup = () => {
+    // Create payment setup modal/form
+    const paymentInfo = {
+      email: prompt("Enter email:") || "",
+      firstName: prompt("Enter first name:") || "",
+      lastName: prompt("Enter last name:") || "",
+      address: prompt("Enter address:") || "",
+      city: prompt("Enter city:") || "",
+      zip: prompt("Enter ZIP code:") || "",
+      cardNumber: prompt("Enter card number (stored locally):") || "",
+      expiry: prompt("Enter expiry (MM/YY):") || "",
+      cvv: prompt("Enter CVV:") || "",
+      autoSubmit: confirm("Auto-submit checkout? (WARNING: This will automatically complete purchases)")
+    };
+    
+    // Store in extension storage
+    chrome.runtime.sendMessage({
+      type: 'STORE_PAYMENT_INFO',
+      paymentInfo: paymentInfo
+    }, (response) => {
+      if (response?.success) {
+        toast({
+          title: "Payment Info Saved",
+          description: "Payment information stored for auto-checkout",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not save payment information",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   return (
@@ -267,9 +302,9 @@ export function DropMonitorIntegration() {
 
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
                 <div>
-                  <h4 className="font-medium">🤖 Auto-Checkout Mode</h4>
+                  <h4 className="font-medium">🤖 Ultra-Fast Auto-Checkout Mode</h4>
                   <p className="text-sm text-muted-foreground">
-                    Extension checks every 1 second for Labubu products and auto-purchases them
+                    Extension checks every 0.01 seconds for Labubu products and auto-purchases them
                   </p>
                 </div>
                 <Switch 
@@ -277,6 +312,21 @@ export function DropMonitorIntegration() {
                   onCheckedChange={toggleAutoCheckout}
                   disabled={!extensionStatus.installed}
                 />
+              </div>
+              
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                <h4 className="font-medium">💳 Payment Information</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Configure payment details for auto-checkout
+                </p>
+                <Button 
+                  onClick={() => openPaymentSetup()}
+                  variant="outline"
+                  size="sm"
+                  disabled={!extensionStatus.installed}
+                >
+                  Setup Payment Info
+                </Button>
               </div>
             </div>
 

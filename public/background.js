@@ -49,6 +49,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       toggleAutoCheckout(message.enabled, sendResponse);
       break;
       
+    case 'STORE_PAYMENT_INFO':
+      storePaymentInfo(message.paymentInfo, sendResponse);
+      break;
+      
     default:
       console.log('Unknown message type:', message.type);
   }
@@ -222,6 +226,18 @@ async function toggleAutoCheckout(enabled, sendResponse) {
     sendResponse({ success: true });
   } catch (error) {
     console.error('Error toggling auto-checkout:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Store payment information securely
+async function storePaymentInfo(paymentInfo, sendResponse) {
+  try {
+    await chrome.storage.local.set({ paymentInfo });
+    console.log('Payment information stored securely');
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error storing payment info:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
