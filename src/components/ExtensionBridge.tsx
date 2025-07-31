@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Simple type for extension APIs to avoid conflicts
 interface ExtensionAPI {
